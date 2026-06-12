@@ -95,8 +95,11 @@ class Preprocessor:
         if img is None:
             img = np.zeros(self.img_size[::-1])
 
+        if img.ndim == 3 and img.shape[2] == 1:
+            img = img[:, :, 0]
+
         # data augmentation
-        img = img.astype(np.float)
+        img = img.astype(float)
         if self.data_augmentation:
             # photometric data augmentation
             if random.random() < 0.25:
@@ -110,7 +113,7 @@ class Preprocessor:
 
             # geometric data augmentation
             wt, ht = self.img_size
-            h, w = img.shape
+            h, w = img.shape[ :2]
             f = min(wt / w, ht / h)
             fx = f * np.random.uniform(0.75, 1.05)
             fy = f * np.random.uniform(0.75, 1.05)

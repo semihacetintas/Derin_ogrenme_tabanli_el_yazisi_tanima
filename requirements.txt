@@ -1,7 +1,9 @@
+patch-ng==1.19.0
 editdistance==0.5.2
-lmdb==1.0.0
-matplotlib==3.2.1
-numpy==1.19.5
-opencv-python==4.4.0.46
+lmdb==1.7.5
+matplotlib==3.5.3
+numpy==1.24.4
+opencv-python==4.7.0.72
 path==15.0.0
-tensorflow==2.4.0
+albumentations==2.0.8
+tensorflow==2.11.0

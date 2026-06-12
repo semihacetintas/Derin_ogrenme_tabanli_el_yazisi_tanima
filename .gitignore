@@ -1,8 +1,28 @@
+# Dataset
 data/words*
-data/words.txt
-src/__pycache__/
-notes/
-*.so
+data/gt/
+data/cumle.png
+data/cumle2.png
+data/generated/
+# Python
+__pycache__/
 *.pyc
+*.so
+
+# IDE
 .idea/
+.vscode/
+
+# Çıktılar
 dump/
+src/output/
+output/
+
+# Sanal ortam
+htr_env/
+htr_envhtr_env/
+.venv/
+venv/
+
+# Loglar
+debug-*.log

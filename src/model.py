@@ -1,6 +1,12 @@
 import os
 import sys
+import warnings
 from typing import List, Tuple
+
+# Suppress noisy TensorFlow/C++ logs and Python deprecation warnings.
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 import numpy as np
 import tensorflow as tf
@@ -9,6 +15,10 @@ from dataloader_iam import Batch
 
 # Disable eager mode
 tf.compat.v1.disable_eager_execution()
+try:
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+except Exception:
+    pass
 
 
 class DecoderType:
@@ -66,10 +76,9 @@ class Model:
         # create layers
         pool = cnn_in4d  # input to first CNN layer
         for i in range(num_layers):
-            kernel = tf.Variable(
-                tf.random.truncated_normal([kernel_vals[i], kernel_vals[i], feature_vals[i], feature_vals[i + 1]],
-                                           stddev=0.1))
-            conv = tf.nn.conv2d(input=pool, filters=kernel, padding='SAME', strides=(1, 1, 1, 1))
+            conv = tf.compat.v1.layers.conv2d(pool, filters=feature_vals[i + 1], kernel_size=kernel_vals[i],
+                                              padding='same', strides=1, data_format='channels_last',
+                                              kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=0.1))
             conv_norm = tf.compat.v1.layers.batch_normalization(conv, training=self.is_train)
             relu = tf.nn.relu(conv_norm)
             pool = tf.nn.max_pool2d(input=relu, ksize=(1, pool_vals[i][0], pool_vals[i][1], 1),
@@ -99,8 +108,8 @@ class Model:
 
         # project output to chars (including blank): BxTx1x2H -> BxTx1xC -> BxTxC
         kernel = tf.Variable(tf.random.truncated_normal([1, 1, num_hidden * 2, len(self.char_list) + 1], stddev=0.1))
-        self.rnn_out_3d = tf.squeeze(tf.nn.atrous_conv2d(value=concat, filters=kernel, rate=1, padding='SAME'),
-                                     axis=[2])
+        conv = tf.nn.conv2d(input=concat, filters=kernel, strides=[1, 1, 1, 1], padding='SAME')
+        self.rnn_out_3d = tf.squeeze(conv, axis=[2])
 
     def setup_ctc(self) -> None:
         """Create CTC loss and decoder."""
@@ -158,12 +167,18 @@ class Model:
 
         # if model must be restored (for inference), there must be a snapshot
         if self.must_restore and not latest_snapshot:
-            raise Exception('No saved model found in: ' + model_dir)
+            raise FileNotFoundError('No saved model found in: ' + model_dir)
 
         # load saved model if available
         if latest_snapshot:
             print('Init with stored values from ' + latest_snapshot)
-            saver.restore(sess, latest_snapshot)
+            try:
+                saver.restore(sess, latest_snapshot)
+            except Exception as e:
+                if self.must_restore:
+                    raise RuntimeError('Failed to restore checkpoint from: ' + latest_snapshot) from e
+                print('Warning: could not restore checkpoint, initializing new model. Error:', e)
+                sess.run(tf.compat.v1.global_variables_initializer())
         else:
             print('Init with new values')
             sess.run(tf.compat.v1.global_variables_initializer())
