@@ -23,7 +23,7 @@ Bu proje, el yazısı metinlerin görüntülerden otomatik olarak tanınmasını
 pip install -r requirements.txt
 cd src
 python read_sentence.py --img_file ornek.png
-
+```
 
 ## Geliştiriciler
 
